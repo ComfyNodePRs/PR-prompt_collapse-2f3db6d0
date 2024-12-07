@@ -28,10 +28,11 @@ class ComponentRepository:
                         relative_path = os.path.splitext(relative_path)[0]
                         prefix = relative_path.replace(os.path.sep, ".")
 
-                        for comp_dict in data:
-                            self.components.add(
-                                Component.from_dict(comp_dict, prefix=prefix)
-                            )
+                        if data:
+                            for comp_dict in data:
+                                self.components.add(
+                                    Component.from_dict(comp_dict, prefix=prefix)
+                                )
 
     def get_components(self):
         return self.components.copy()
