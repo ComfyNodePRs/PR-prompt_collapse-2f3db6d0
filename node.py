@@ -14,6 +14,13 @@ class PromptCollapseNode:
                 "reload_on_generation": ("BOOLEAN", {"default": False, "label": "Reload on Generation"}),
             }
         }
+    
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("prompt",)
+
+    FUNCTION = "process"
+    CATEGORY = "prompt_collapse"
+
 
     def process(self, prompt, directory_path, reload_on_generation):
         global _CACHED_REPO
@@ -28,6 +35,6 @@ class PromptCollapseNode:
         component_names = [c_name.strip() for c_name in prompt.split(",")]
 
         builder = PromptBuilder(repository=_CACHED_REPO, initial_selected=component_names)
-        result = builder.build_prompt()
+        result = ", ".join(builder.build_prompt())
 
         return (result,)
