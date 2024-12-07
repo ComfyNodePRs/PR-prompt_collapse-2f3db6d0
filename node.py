@@ -12,6 +12,7 @@ class PromptCollapseNode:
                 "prompt": ("STRING", {"multiline": True, "default": "", "label": "Prompt"}),
                 "components_directory_path": ("STRING", {"default": "", "label": "Components Directory Path"}),
                 "reload_on_generation": ("BOOLEAN", {"default": False, "label": "Reload on Generation"}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             }
         }
     
@@ -22,7 +23,7 @@ class PromptCollapseNode:
     CATEGORY = "prompt_collapse"
 
 
-    def process(self, prompt, components_directory_path, reload_on_generation):
+    def process(self, prompt, components_directory_path, reload_on_generation, seed):
         global _CACHED_REPO
 
         if not components_directory_path:
@@ -32,7 +33,8 @@ class PromptCollapseNode:
             _CACHED_REPO = ComponentRepository()
             _CACHED_REPO.load_from_directory(components_directory_path)
 
-        component_names = [c_name.strip() for c_name in prompt.split(",")]
+        component_names = [c_name for c_name in prompt.strip().split(",")]
+        component_names = [c_name for c_name in component_names if c_name]
 
         builder = PromptBuilder(repository=_CACHED_REPO, initial_selected=component_names)
         result = ", ".join(builder.build_prompt())
