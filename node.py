@@ -22,15 +22,15 @@ class PromptCollapseNode:
     CATEGORY = "prompt_collapse"
 
 
-    def process(self, prompt, directory_path, reload_on_generation):
+    def process(self, prompt, components_directory_path, reload_on_generation):
         global _CACHED_REPO
 
-        if not directory_path:
-            directory_path = os.path.join(os.path.dirname(__file__), "components")
+        if not components_directory_path:
+            components_directory_path = os.path.join(os.path.dirname(__file__), "components")
 
         if _CACHED_REPO is None or reload_on_generation:
             _CACHED_REPO = ComponentRepository()
-            _CACHED_REPO.load_from_directory(directory_path)
+            _CACHED_REPO.load_from_directory(components_directory_path)
 
         component_names = [c_name.strip() for c_name in prompt.split(",")]
 
