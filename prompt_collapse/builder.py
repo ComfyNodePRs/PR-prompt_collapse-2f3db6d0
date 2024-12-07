@@ -2,29 +2,27 @@ import random
 
 
 class PromptBuilder:
-    def __init__(self, repository, initial_selected=None):
+    def __init__(self, repository, initial_selected=None, tags=None):
         self.repository = repository
         self.relationships = repository.get_relationship_graph()
 
-        if initial_selected is None:
-            initial_selected = []
+        assert initial_selected is None or tags is None, "Cannot specify both initial_selected and tags"
+
+        self.tags = tags or [] 
+        initial_selected = [] if tags else initial_selected
 
         self.selected = []
         self.components = repository.get_all_components()
 
-        for n in initial_selected:
-            comp = self.components.get(n)
-            if comp is None:
-                raise ValueError(f"Initial component {n} not found.")
-            self.selected.append(comp)
+        self.candidates = set(self.components.values())
 
-        self.candidates = set(self.components.values()) - set(self.selected)
+        if initial_selected:
+            self.collapse_initial_selected(initial_selected)
+        
+        if tags:
+            self.collapse_tags(tags)
 
-        for comp in self.selected:
-            if not self.is_compatible(comp):
-                raise ValueError(f"Initial subset is incompatible: {comp.name}")
-
-        self.remove_contradictory_components()
+        self.candidates -= set(self.selected)
 
     def is_compatible(self, comp):
         for s in self.selected:
@@ -38,6 +36,24 @@ class PromptBuilder:
                 return False
 
         return True
+    
+    def are_components_compatible(self, a, b):
+        if a.name == b.name:
+            return True
+
+        r = self.relationships.get_relationship(a.name, b.name)
+
+        if r["type"] == "negative":
+            return False
+        rev_r = self.relationships.get_relationship(b.name, a.name)
+
+        if rev_r["type"] == "negative":
+            return False
+        
+        if a.tags & b.anti_tags or b.tags & a.anti_tags:
+            return False
+
+        return True
 
     def compute_candidate_weights(self):
         final_weights = {}
@@ -45,16 +61,11 @@ class PromptBuilder:
             w = 1.0
             compatible = True
             for s in self.selected:
-                rel = self.relationships.get_relationship(s.name, c.name)
-                if rel["type"] == "negative":
+                if not self.are_components_compatible(s, c):
                     compatible = False
                     break
-                w *= rel["weight"]
 
-                rev_rel = self.relationships.get_relationship(c.name, s.name)
-                if rev_rel["type"] == "negative":
-                    compatible = False
-                    break
+                w += self.relationships.get_relationship(s.name, c.name)["weight"]
 
             if compatible and w > 0:
                 final_weights[c] = w
@@ -82,24 +93,24 @@ class PromptBuilder:
 
         for s in self.selected:
             for candidate in self.candidates:
-                selected_to_candidate = self.relationships.get_relationship(
-                    s.name, candidate.name
-                )["type"]
-                candidate_to_selected = self.relationships.get_relationship(
-                    candidate.name, s.name
-                )["type"]
-
                 if (
-                    selected_to_candidate == "negative"
-                    or candidate_to_selected == "negative"
+                    s.name == candidate.name 
+                    or not self.are_components_compatible(s, candidate)
                 ):
+                    print(f"Removing {candidate.name} because it's not compatible with {s.name}")
                     to_remove.add(candidate)
 
-        self.candidates -= to_remove
+        self.clear_selected(to_remove)
 
     def build_prompt(self, max_components=None):
+        print(self.selected)
+        print(self.candidates)
+
         while True:
             if max_components is not None and len(self.selected) >= max_components:
+                break
+
+            if len(self.candidates) == 0:
                 break
 
             chosen = self.select_component()
@@ -107,7 +118,6 @@ class PromptBuilder:
                 break
 
             self.selected.append(chosen)
-            self.candidates.remove(chosen)
 
             self.remove_contradictory_components()
 
@@ -118,4 +128,43 @@ class PromptBuilder:
                 if content is not None:
                     final_contents.append(content)
 
-        return final_contents
+        return self.flatten_iterative(final_contents)
+    
+    def collapse_tags(self, tags):
+        for tag in tags:
+            compatible_components = [
+                component for component in self.candidates
+                if tag in component.tags and tag not in component.anti_tags
+            ]
+            print(tag, compatible_components)
+
+            if compatible_components:
+                chosen = random.choice(compatible_components)
+
+                self.selected.append(chosen)
+                self.remove_contradictory_components()
+
+    def collapse_initial_selected(self, initial_selected):
+        for n in initial_selected:
+            comp = self.components.get(n)
+            if comp is None:
+                raise ValueError(f"Initial component {n} not found.")
+            self.selected.append(comp)
+            self.remove_contradictory_components()
+
+    def clear_selected(self, values):
+        self.candidates.difference_update(values)
+
+    @staticmethod
+    def flatten_iterative(lst):
+        stack = [lst]
+        flattened = []
+        
+        while stack:
+            current = stack.pop()
+            if isinstance(current, (list, tuple)):
+                stack.extend(reversed(current))
+            else:
+                flattened.append(current)
+                
+        return flattened[::-1]

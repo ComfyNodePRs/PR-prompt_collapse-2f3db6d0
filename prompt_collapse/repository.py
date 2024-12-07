@@ -33,10 +33,12 @@ class ComponentRepository:
                             base_name = comp_dict["name"]
                             full_name = f"{prefix}.{base_name}" if prefix else base_name
 
-                            content = comp_dict.get("content")
+                            content = comp_dict.get("content", [])
                             alias = comp_dict.get("alias")
+                            tags = comp_dict.get("tags", [])
+                            anti_tags = comp_dict.get("anti_tags", [])
                             is_abstract = comp_dict.get("is_abstract", False)
-                            c = Component(full_name, alias, content, is_abstract)
+                            c = Component(full_name, alias, content, is_abstract, tags, anti_tags)
                             self.components[full_name] = c
 
                             rels = comp_dict.get("relationships", {})

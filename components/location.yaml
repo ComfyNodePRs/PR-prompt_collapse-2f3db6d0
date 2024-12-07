@@ -1,0 +1,45 @@
+- name: "city"
+  tags:
+    - urban
+    - modern
+    - location
+  anti_tags:
+    - countryside
+    - nature
+    - location
+  content:
+    - "cityscape, urban environment, city lights"
+
+- name: "countryside"
+  tags:
+    - countryside
+    - nature
+    - location
+  anti_tags:
+    - urban
+    - modern
+    - location
+  content:
+    - "countryside, nature, rural landscape"
+
+- name: "beach"
+  tags:
+    - beach
+    - location
+  anti_tags:
+    - mountains
+    - countryside
+    - location
+  content:
+    - "beach, ocean"
+    - "seashore, coastal landscape"
+
+- name: "mountains"
+  tags:
+    - mountains
+    - location
+  anti_tags:
+    - beach
+    - location
+  content:
+    - "mountain range, high altitude, rugged terrain"

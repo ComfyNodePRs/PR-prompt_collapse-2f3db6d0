@@ -1,13 +1,17 @@
 - name: "bright_studio"
+  tags:
+    - bright
+  anti_tags:
+    - dark
+    - moody
   content:
     - "under bright studio lighting"
-  relationships:
-    lighting.dark_moody:
-      type: negative
 
 - name: "dark_moody"
+  tags:
+    - dark
+    - moody
+  anti_tags:
+    - bright
   content:
     - "with dark, moody lighting"
-  relationships:
-    painting.styles.dark_moody:
-      type: negative

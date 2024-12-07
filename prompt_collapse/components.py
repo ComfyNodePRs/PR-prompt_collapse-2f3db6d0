@@ -2,9 +2,11 @@ import random
 
 
 class Component:
-    def __init__(self, name, alias=None, content=None, is_abstract=False):
+    def __init__(self, name, alias=None, content=None, is_abstract=False, tags=None, anti_tags=None):
         self.name = name
         self.alias = alias
+        self.tags = set(tags)
+        self.anti_tags = set(anti_tags)
 
         if content is not None and not isinstance(content, list):
             content = [content]

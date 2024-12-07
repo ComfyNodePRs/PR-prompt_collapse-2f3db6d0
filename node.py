@@ -11,6 +11,7 @@ class PromptCollapseNode:
             "required": {
                 "prompt": ("STRING", {"multiline": True, "default": "", "label": "Prompt"}),
                 "components_directory_path": ("STRING", {"default": "", "label": "Components Directory Path"}),
+                "use_tags": ("BOOLEAN", {"default": False, "label": "Use Tags"}),
                 "reload_on_generation": ("BOOLEAN", {"default": False, "label": "Reload on Generation"}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             }
@@ -23,7 +24,7 @@ class PromptCollapseNode:
     CATEGORY = "prompt_collapse"
 
 
-    def process(self, prompt, components_directory_path, reload_on_generation, seed):
+    def process(self, prompt, components_directory_path, use_tags, reload_on_generation, seed):
         global _CACHED_REPO
 
         if not components_directory_path:
@@ -33,10 +34,19 @@ class PromptCollapseNode:
             _CACHED_REPO = ComponentRepository()
             _CACHED_REPO.load_from_directory(components_directory_path)
 
-        component_names = [c_name for c_name in prompt.strip().split(",")]
-        component_names = [c_name for c_name in component_names if c_name]
+        names = [c_name.strip() for c_name in prompt.strip().split(",")]
+        names = [c_name for c_name in names if c_name]
 
-        builder = PromptBuilder(repository=_CACHED_REPO, initial_selected=component_names)
-        result = ", ".join(builder.build_prompt())
+        print(names)
+
+        initial_selected = None if use_tags else names
+        tags = names if use_tags else None
+
+        items = PromptBuilder(
+            repository=_CACHED_REPO, 
+            initial_selected=initial_selected, 
+            tags=tags,
+        ).build_prompt()
+        result = ", ".join(set(items))
 
         return (result,)
