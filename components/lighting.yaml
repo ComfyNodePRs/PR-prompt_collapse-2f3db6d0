@@ -1,0 +1,10 @@
+- name: "bright_studio"
+  content:
+    - "under bright studio lighting"
+  relationships:
+    lighting.dark_moody:
+      type: negative
+
+- name: "dark_moody"
+  content:
+    - "with dark, moody lighting"
