@@ -170,14 +170,36 @@ class PromptBuilder:
 
         if sort_by_matching_tags:
             candidates = sorted(candidates, key=lambda c: len(tags & c.tags))
-            return next(iter(candidates), None)
+
+            if not candidates:
+                return None
+
+            top_candidate_match_level = len(tags & candidates[0].tags)
+            top_match_candidates = [
+                c for c in candidates if len(tags & c.tags) == top_candidate_match_level
+            ]
+
+            return random.choice(top_match_candidates)
 
         if candidates:
             return random.choice(candidates)
 
         return None
 
+    def satisfy_random_dependency(self):
+        dependency = random.choice(list(self.dependencies))
+
+        return self.get_next_candidate_conditional(
+            set(dependency.tags), sort_by_matching_tags=True
+        )
+
     def get_next_candidate(self):
+        if self.dependencies:
+            candidate = self.satisfy_random_dependency()
+
+            if candidate:
+                return candidate
+
         tags = self.get_unfulfilled_tags()
         anti_tags = self.anti_tags
 

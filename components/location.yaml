@@ -6,7 +6,8 @@
   dependencies:
     - tags:
         - daytime
-      budget: 1
+      budget:
+        e
   anti_tags:
     - countryside
     - nature
