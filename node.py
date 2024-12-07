@@ -47,6 +47,8 @@ class PromptCollapseNode:
         tags = [c_name.strip() for c_name in prompt.strip().split(",")]
         tags = [c_name for c_name in tags if c_name]
 
+        print(tags)
+
         items = PromptBuilder(repository=_CACHED_REPO, tags=tags).build_prompt()
         result = ", ".join(set(items))
 

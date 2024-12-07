@@ -16,8 +16,6 @@ class PromptBuilder:
         self.context = []
         self.candidates = self.repository.get_components()
 
-        self.do_state_maintenance()
-
     def build_prompt(self):
         while not self.stop_condition_fulfilled():
             chosen = self.get_next_candidate()
@@ -97,7 +95,7 @@ class PromptBuilder:
         all_current_tags = self.get_all_positive_tags()
 
         for candidate in self.candidates:
-            if any(tag in all_current_tags for tag in candidate.anti_tags):
+            if any(tag in all_current_tags for tag in candidate.non_contradictory_anti_tags):
                 to_remove.add(candidate)
 
         self.clear_selected(to_remove)
@@ -129,6 +127,9 @@ class PromptBuilder:
             return True
 
         if len(self.candidates) == 0:
+            return True
+        
+        if not self.dependencies:
             return True
 
         return False
