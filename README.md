@@ -26,6 +26,13 @@ For example, `a/b/c.yaml` with a component named `d` within the file will have a
 
 The resulting prompt could contain wildcard names that could be processed by nodes such as `ImpactWildcardProcessor`.
 
+Relationships can be used to control the selection of components.
+For example, a component with a positive relationship with another component will be more likely to be selected when that component is selected.
+
+Neutral relationships have no effect on component selection.
+
+Negative relationships prevent a component from being selected if the other component is selected.
+
 ## ComfyUI Integration
 
 The system provides a custom node with the following inputs:
