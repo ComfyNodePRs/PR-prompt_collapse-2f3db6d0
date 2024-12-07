@@ -1,3 +1,4 @@
+import os
 from prompt_collapse.builder import PromptBuilder
 from prompt_collapse.repository import ComponentRepository
 
@@ -17,6 +18,9 @@ class PromptCollapseNode:
 
     def process(self, prompt, directory_path, reload_on_generation):
         global _CACHED_REPO
+
+        if not directory_path:
+            directory_path = os.path.join(os.path.dirname(__file__), "components")
 
         if _CACHED_REPO is None or reload_on_generation:
             _CACHED_REPO = ComponentRepository()
