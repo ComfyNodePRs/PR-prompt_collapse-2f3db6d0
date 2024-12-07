@@ -8,3 +8,6 @@
 - name: "dark_moody"
   content:
     - "with dark, moody lighting"
+  relationships:
+    painting.styles.dark_moody:
+      type: negative

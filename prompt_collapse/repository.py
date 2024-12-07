@@ -40,7 +40,7 @@ class ComponentRepository:
                             self.components[full_name] = c
 
                             rels = comp_dict.get("relationships", {})
- 
+
                             for target, rel_info in rels.items():
                                 rtype = rel_info.get("type", "neutral")
                                 rweight = rel_info.get("weight", 1.0)

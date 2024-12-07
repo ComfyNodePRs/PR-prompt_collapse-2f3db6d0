@@ -6,8 +6,6 @@
     oil_painting:
       type: positive
       weight: 1.5
-    photorealistic:
-      type: negative
 
 - name: "oil_painting"
   content:

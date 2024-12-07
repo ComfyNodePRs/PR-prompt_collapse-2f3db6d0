@@ -1,7 +1,7 @@
 from .node import *
 
 NODE_CLASS_MAPPINGS = { 
-    "Any Python": PromptCollapseNode,    
+    "PromptCollapse": PromptCollapseNode,    
 }
     
 print("Loaded PromptCollapse Node")
