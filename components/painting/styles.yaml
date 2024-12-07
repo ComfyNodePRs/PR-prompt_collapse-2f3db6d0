@@ -2,15 +2,19 @@
   content:
     - "in an impressionist style"
     - "in a style reminiscent of Monet"
-  relationships:
-    oil_painting:
-      type: positive
-      weight: 1.5
+  tags:
+    - style
+    - painting
+  anti_tags:
+    - realism
+    - style  # In order to avoid contradicting styles
 
 - name: "oil_painting"
   content:
     - "executed in lush oil paint strokes"
-  relationships:
-    impressionist:
-      type: positive
-      weight: 1.5
+  tags:
+    - style
+    - painting
+  anti_tags:
+    - realism
+    - style

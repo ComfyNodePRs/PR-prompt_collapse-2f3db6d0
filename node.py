@@ -37,8 +37,6 @@ class PromptCollapseNode:
         names = [c_name.strip() for c_name in prompt.strip().split(",")]
         names = [c_name for c_name in names if c_name]
 
-        print(names)
-
         initial_selected = None if use_tags else names
         tags = names if use_tags else None
 

@@ -1,170 +1,223 @@
 import random
+from collections import Counter
+
+from .components import Dependency, RequestBudget
 
 
 class PromptBuilder:
-    def __init__(self, repository, initial_selected=None, tags=None):
+    def __init__(self, repository, tags=None, max_components=None):
         self.repository = repository
-        self.relationships = repository.get_relationship_graph()
 
-        assert initial_selected is None or tags is None, "Cannot specify both initial_selected and tags"
+        self.max_components = max_components
+        self.tags = Counter()
+        self.anti_tags = set()
+        self.dependencies = self.build_initial_dependencies(tags)
 
-        self.tags = tags or [] 
-        initial_selected = [] if tags else initial_selected
+        self.context = []
+        self.candidates = self.repository.get_components()
 
-        self.selected = []
-        self.components = repository.get_all_components()
+        self.do_state_maintenance()
 
-        self.candidates = set(self.components.values())
+    def build_prompt(self):
+        while not self.stop_condition_fulfilled():
+            chosen = self.get_next_candidate()
 
-        if initial_selected:
-            self.collapse_initial_selected(initial_selected)
-        
-        if tags:
-            self.collapse_tags(tags)
+            if chosen is None:
+                break
 
-        self.candidates -= set(self.selected)
+            self.add_component(chosen)
 
-    def is_compatible(self, comp):
-        for s in self.selected:
-            r = self.relationships.get_relationship(s.name, comp.name)
+        return self.get_final_prompt()
 
-            if r["type"] == "negative":
-                return False
-            rev_r = self.relationships.get_relationship(comp.name, s.name)
-
-            if rev_r["type"] == "negative":
-                return False
-
-        return True
-    
     def are_components_compatible(self, a, b):
         if a.name == b.name:
             return True
 
-        r = self.relationships.get_relationship(a.name, b.name)
-
-        if r["type"] == "negative":
-            return False
-        rev_r = self.relationships.get_relationship(b.name, a.name)
-
-        if rev_r["type"] == "negative":
-            return False
-        
         if a.tags & b.anti_tags or b.tags & a.anti_tags:
             return False
 
         return True
 
-    def compute_candidate_weights(self):
-        final_weights = {}
-        for c in self.candidates:
-            w = 1.0
-            compatible = True
-            for s in self.selected:
-                if not self.are_components_compatible(s, c):
-                    compatible = False
-                    break
-
-                w += self.relationships.get_relationship(s.name, c.name)["weight"]
-
-            if compatible and w > 0:
-                final_weights[c] = w
-
-        return final_weights
-
-    def select_component(self):
-        final_weights = self.compute_candidate_weights()
-        if not final_weights:
-            return None
-
-        total = sum(final_weights.values())
-        r = random.uniform(0, total)
-        cumulative = 0.0
-        items = list(final_weights.items())
-        random.shuffle(items)
-        for c, w in items:
-            cumulative += w
-            if r <= cumulative:
-                return c
-        return None
+    def contradicts_current_state(self, comp):
+        for s in self.selected:
+            if not self.are_components_compatible(s, comp):
+                return True
+        return False
 
     def remove_contradictory_components(self):
         to_remove = set()
 
-        for s in self.selected:
+        for s in self.context:
             for candidate in self.candidates:
-                if (
-                    s.name == candidate.name 
-                    or not self.are_components_compatible(s, candidate)
-                ):
-                    print(f"Removing {candidate.name} because it's not compatible with {s.name}")
+                has_anti_tag = any(tag in self.anti_tags for tag in candidate.tags)
+                is_not_compatible = not self.are_components_compatible(s, candidate)
+                same_name = s.name == candidate.name
+
+                if has_anti_tag or is_not_compatible or same_name:
                     to_remove.add(candidate)
 
         self.clear_selected(to_remove)
 
-    def build_prompt(self, max_components=None):
-        print(self.selected)
-        print(self.candidates)
+    def remove_unsolvable_tag_requests(self):
+        to_remove = set()
 
-        while True:
-            if max_components is not None and len(self.selected) >= max_components:
-                break
+        for dependency in self.dependencies:
+            compatible_components = [
+                component
+                for component in self.candidates
+                if not any(
+                    tag in component.non_contradictory_anti_tags
+                    for tag in dependency.tags
+                )
+                and any(tag in component.tags for tag in dependency.tags)
+            ]
 
-            if len(self.candidates) == 0:
-                break
+            if not compatible_components:
+                to_remove.add(dependency)
 
-            chosen = self.select_component()
-            if chosen is None:
-                break
+        self.dependencies.difference_update(to_remove)
 
-            self.selected.append(chosen)
+    def remove_fulfilled_dependencies(self):
+        to_remove = set()
 
-            self.remove_contradictory_components()
+        for dependency in self.dependencies:
+            dep_tags = set(dependency.tags)
 
+            for tag in dependency.tags:
+                if self.tags[tag] >= dependency.budget.exact and tag in dep_tags:
+                    dep_tags.remove(tag)
+
+            if not dep_tags:
+                to_remove.add(dependency)
+
+        self.dependencies.difference_update(to_remove)
+
+    def remove_incompatible_tagged_components(self):
+        to_remove = set()
+        all_current_tags = self.get_all_positive_tags()
+
+        for candidate in self.candidates:
+            if any(tag in all_current_tags for tag in candidate.anti_tags):
+                to_remove.add(candidate)
+
+        self.clear_selected(to_remove)
+
+    def get_final_prompt(self):
         final_contents = []
-        for c in self.selected:
+        for c in self.context:
             if not c.is_abstract:
                 content = c.get_random_content()
                 if content is not None:
                     final_contents.append(content)
 
         return self.flatten_iterative(final_contents)
-    
-    def collapse_tags(self, tags):
-        for tag in tags:
-            compatible_components = [
-                component for component in self.candidates
-                if tag in component.tags and tag not in component.anti_tags
-            ]
-            print(tag, compatible_components)
-
-            if compatible_components:
-                chosen = random.choice(compatible_components)
-
-                self.selected.append(chosen)
-                self.remove_contradictory_components()
-
-    def collapse_initial_selected(self, initial_selected):
-        for n in initial_selected:
-            comp = self.components.get(n)
-            if comp is None:
-                raise ValueError(f"Initial component {n} not found.")
-            self.selected.append(comp)
-            self.remove_contradictory_components()
 
     def clear_selected(self, values):
         self.candidates.difference_update(values)
+
+    def do_state_maintenance(self):
+        self.remove_incompatible_tagged_components()
+        self.remove_fulfilled_dependencies()
+        self.remove_unsolvable_tag_requests()
+        self.remove_contradictory_components()
+
+    def stop_condition_fulfilled(self):
+        if (
+            self.max_components is not None
+            and len(self.selected) >= self.max_components
+        ):
+            return True
+
+        if len(self.candidates) == 0:
+            return True
+
+        return False
+
+    def build_initial_dependencies(self, tags):
+        return {Dependency([tag], RequestBudget(exact=1, min=1, max=1)) for tag in tags}
+
+    def get_all_positive_tags(self):
+        all_tags = set()
+
+        for dependency in self.dependencies:
+            all_tags.update(dependency.tags)
+
+        for component in self.context:
+            all_tags.update(component.tags)
+
+        return all_tags
+
+    def get_unfulfilled_tags(self):
+        tags = set()
+
+        for dependency in self.dependencies:
+            tags.update(dependency.tags)
+
+        return tags
+
+    def get_next_candidate_conditional(
+        self, tags=None, exclude_tags=None, sort_by_matching_tags=False
+    ):
+        candidates = list(self.candidates)
+
+        if tags:
+            candidates = [c for c in candidates if any(tag in c.tags for tag in tags)]
+
+        if exclude_tags:
+            candidates = [
+                c for c in candidates if not any(tag in c.tags for tag in exclude_tags)
+            ]
+
+        if sort_by_matching_tags:
+            candidates = sorted(candidates, key=lambda c: len(tags & c.tags))
+            return next(iter(candidates), None)
+
+        if candidates:
+            return random.choice(candidates)
+
+        return None
+
+    def get_next_candidate(self):
+        tags = self.get_unfulfilled_tags()
+        anti_tags = self.anti_tags
+
+        return self.get_next_candidate_conditional(tags, anti_tags)
+
+    def add_component(self, component):
+        self.context.append(component)
+        self.anti_tags.update(component.anti_tags)
+
+        for dependency in component.dependencies:
+            self.dependencies.add(
+                Dependency(
+                    dependency.tags,
+                    RequestBudget(
+                        exact=(
+                            dependency.budget.exact
+                            or random.randint(
+                                dependency.budget.min, dependency.budget.max
+                            )
+                        )
+                    ),
+                )
+            )
+
+        for tag in component.tags:
+            self.tags[tag] += 1
+
+        self.do_state_maintenance()
 
     @staticmethod
     def flatten_iterative(lst):
         stack = [lst]
         flattened = []
-        
+
         while stack:
             current = stack.pop()
+
             if isinstance(current, (list, tuple)):
                 stack.extend(reversed(current))
             else:
                 flattened.append(current)
-                
+
         return flattened[::-1]

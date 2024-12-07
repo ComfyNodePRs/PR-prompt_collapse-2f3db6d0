@@ -3,6 +3,8 @@
     - daytime
     - day
     - bright
+  anti_tags:
+    - daytime
   content:
     - ["daytime", "daylight", "sunlight", "daytime"]
 
@@ -11,5 +13,7 @@
     - daytime
     - night
     - dark
+  anti_tags:
+    - daytime
   content:
     - ["nighttime", "night", "darkness", "nighttime"]
