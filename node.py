@@ -1,6 +1,5 @@
 import os
-from prompt_collapse.builder import PromptBuilder
-from prompt_collapse.repository import ComponentRepository
+from .prompt_collapse import PromptBuilder, ComponentRepository
 
 _CACHED_REPO = None
 
