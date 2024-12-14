@@ -1,0 +1,92 @@
+- alias: sky_color
+  tags:
+    - sky/color
+    - sky/feature
+  parameters:
+    - name: "color"
+      transform:
+        name: one_of
+        values:
+          - weight: 1
+            value: "red"
+          - weight: 1
+            value: "pale-blue"
+          - weight: 2
+            value: "blue"
+  declares:
+    - name: set
+      variable: "sky/color"
+      value: "{color}"
+    - name: decrement
+      variable: "sky/feature"
+  generates:
+    - name: some_of
+      quota: 1
+      values:
+        - weight: 2
+          value: "{color} skies"
+        - value: "{color}-colored sky"
+    - "sky color gradient"
+  requires:
+    - name: greater_than
+      variable: "sky/feature"
+      value: 0
+    - name: not
+      conditions:
+        - name: exists
+          variable: "sky/color"
+
+- alias: sky_clouds
+  tags:
+    - sky/clouds
+    - sky/feature
+  parameters:
+    - name: "cloud_density"
+      transform:
+        name: one_of
+        values:
+          - weight: 1
+            value: "cloudless"
+          - weight: 1
+            value: "densely clouded"
+          - weight: 2
+            value: "slightly cloudy"
+  declares:
+    - name: set
+      variable: "sky/clouds"
+      value: "{cloud_density}"
+    - name: decrement
+      variable: "sky/feature"
+  generates:
+    - "{cloud_density} sky"
+  requires:
+    - name: greater_than
+      variable: "sky/feature"
+      value: 0
+    - name: not
+      conditions:
+        - name: exists
+          variable: "sky/clouds"
+
+- alias: sky_description
+  tags:
+    - sky/description
+    - sky/feature
+  parameters:
+    - name: "feature_count"
+      transform:
+        name: range
+        min: 1
+        max: 2
+  declares:
+    - name: set
+      variable: "sky/feature"
+      value: "{feature_count}"
+      cast_to: int
+    - name: set
+      variable: "sky/description"
+  requires:
+    - name: not
+      conditions:
+        - name: exists
+          variable: "sky/description"

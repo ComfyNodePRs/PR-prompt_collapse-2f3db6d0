@@ -1,38 +1,76 @@
+import json
+import yaml
 import os
 
-import yaml
+from typing import List
 
-from .components import Component
+from .component import Component
 
 
 class ComponentRepository:
     def __init__(self):
-        self.components = set()
+        self._components: dict[str, Component] = {}
 
-    def load_from_directory(self, directory):
-        base_dir = os.path.abspath(directory)
-        base_len = len(base_dir) + 1
+    def load(self, path: str) -> None:
+        """
+        Loads all component files recursively from a given path
 
-        for root, dirs, files in os.walk(directory):
-            for fname in files:
-                if fname.lower().endswith((".yaml", ".yml")):
-                    path = os.path.join(root, fname)
-                    with open(path, "r", encoding="utf-8") as f:
-                        data = yaml.safe_load(f)
+        :param path: Path to a component collection
+        :return: None
+        """
+        # List all files in the directory
+        # For each file, parse all the components within it and add them to the repository
+        filenames = self._list_files(path)
 
-                        if isinstance(data, dict):
-                            data = [data]
+        for filename in filenames:
+            components = self._parse_components(filename)
 
-                        # Compute prefix from path
-                        relative_path = os.path.abspath(path)[base_len:]
-                        relative_path = os.path.splitext(relative_path)[0]
-                        prefix = relative_path.replace(os.path.sep, ".")
+            for component in components:
+                if component.alias in self._components:
+                    raise ValueError(f"Component with alias {component.alias} already exists")
 
-                        if data:
-                            for comp_dict in data:
-                                self.components.add(
-                                    Component.from_dict(comp_dict, prefix=prefix)
-                                )
+                self._components[component.alias] = component
 
-    def get_components(self):
-        return self.components.copy()
+    def get(self, alias: str) -> Component:
+        if alias not in self._components:
+            raise ValueError(f"Component with alias {alias} not found")
+
+        return self._components[alias]
+
+    def get_all(self) -> List[Component]:
+        return list(self._components.values())
+
+    def _parse_components(self, file_path: str) -> List[Component]:
+        expected_extensions = [".yaml", ".yml", ".json"]
+
+        if not any(file_path.endswith(ext) for ext in expected_extensions):
+            return []
+
+        if file_path.endswith(".json"):
+            return self._parse_json(file_path)
+
+        return self._parse_yaml(file_path)
+
+    @staticmethod
+    def _parse_json(file_path: str) -> List[Component]:
+        with open(file_path, "r") as file:
+            data = json.load(file)
+
+        return [Component.from_spec(spec) for spec in data]
+
+    @staticmethod
+    def _parse_yaml(file_path: str) -> List[Component]:
+        with open(file_path, "r") as file:
+            data = yaml.safe_load(file)
+
+        return [Component.from_spec(spec) for spec in data]
+
+    @staticmethod
+    def _list_files(path: str) -> List[str]:
+        filenames = []
+
+        for root, _, files in os.walk(path):
+            for file in files:
+                filenames.append(os.path.join(root, file))
+
+        return filenames

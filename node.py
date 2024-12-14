@@ -1,8 +1,8 @@
 import os
 
-from .prompt_collapse import ComponentRepository, PromptBuilder
+from .prompt_collapse import ComponentRepository, Solver
 
-_CACHED_REPO = None
+_CACHED_SOLVER = None
 
 
 class PromptCollapseNode:
@@ -33,23 +33,24 @@ class PromptCollapseNode:
     CATEGORY = "prompt_collapse"
 
     def process(self, prompt, components_directory_path, reload_on_generation, seed):
-        global _CACHED_REPO
+        global _CACHED_SOLVER
 
         if not components_directory_path:
             components_directory_path = os.path.join(
                 os.path.dirname(__file__), "components"
             )
 
-        if _CACHED_REPO is None or reload_on_generation:
-            _CACHED_REPO = ComponentRepository()
-            _CACHED_REPO.load_from_directory(components_directory_path)
+        if _CACHED_SOLVER is None:
+            repo = ComponentRepository()
+            repo.load(str(components_directory_path))
+            _CACHED_SOLVER = Solver(repo)
+
+        if reload_on_generation:
+            _CACHED_SOLVER.repository.load(str(components_directory_path))
 
         tags = [c_name.strip() for c_name in prompt.strip().split(",")]
         tags = [c_name for c_name in tags if c_name]
 
-        print(tags)
+        prompt = _CACHED_SOLVER.generate_prompt(tags)
 
-        items = PromptBuilder(repository=_CACHED_REPO, tags=tags).build_prompt()
-        result = ", ".join(set(items))
-
-        return (result,)
+        return (prompt,)
