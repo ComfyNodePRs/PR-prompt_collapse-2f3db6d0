@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prompt_collapse"
-version = "0.1.1"
+version = "0.1.2"
 description = "A prompt generation system that manages relationships between prompt components to maintain logical consistency"
 authors = ["kraglik <kraglik.i.d@gmail.com>"]
 readme = "README.md"
