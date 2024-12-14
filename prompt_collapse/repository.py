@@ -20,6 +20,8 @@ class ComponentRepository:
         """
         # List all files in the directory
         # For each file, parse all the components within it and add them to the repository
+        self._components = {}
+
         filenames = self._list_files(path)
 
         for filename in filenames:
