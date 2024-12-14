@@ -1,14 +1,21 @@
 [tool.poetry]
 name = "prompt_collapse"
-version = "0.1.0"
-description = ""
+version = "0.1.1"
+description = "A prompt generation system that manages relationships between prompt components to maintain logical consistency"
 authors = ["kraglik <kraglik.i.d@gmail.com>"]
 readme = "README.md"
+homepage = "https://github.com/kraglik/prompt_collapse"
+repository = "https://github.com/kraglik/prompt_collapse"
+documentation = "https://github.com/kraglik/prompt_collapse"
+keywords = ["prompt", "generation", "ai", "stable-diffusion", "comfyui"]
+license = "MIT"
+packages = [
+    { include = "prompt_collapse" }
+]
 
 [tool.poetry.dependencies]
-python = "^3.12"
-pyyaml = "^6.0.2"
-
+python = ">=3.10"
+pyyaml = ">=6.0.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
