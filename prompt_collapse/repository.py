@@ -58,12 +58,18 @@ class ComponentRepository:
         with open(file_path, "r") as file:
             data = json.load(file)
 
+        if not data:
+            return []
+
         return [Component.from_spec(spec) for spec in data]
 
     @staticmethod
     def _parse_yaml(file_path: str) -> List[Component]:
         with open(file_path, "r") as file:
             data = yaml.safe_load(file)
+
+        if not data:
+            return []
 
         return [Component.from_spec(spec) for spec in data]
 
